@@ -136,15 +136,27 @@ export const testIntersection = (a: Actor, b: Actor): boolean => {
 };
 
 export const checkBodyCollision = (a: Actor, b: Actor) => {
-    const ca = GAME_CFG.actors[a._type];
-    const cb = GAME_CFG.actors[b._type];
-    const nx = a._x - b._x;
-    const ny = (a._y - b._y) * 2;
-    const nz = a._z + ca.height - (b._z + cb.height);
+    // 获取每个角色的属性
+    const ca = GAME_CFG.actors[a._type]; // 角色a的配置
+    const cb = GAME_CFG.actors[b._type]; // 角色b的配置
+
+    // 计算两个角色之间的相对位移
+    const nx = a._x - b._x; // x方向位移
+    const ny = (a._y - b._y) * 2; // y方向位移
+    const nz = a._z + ca.height - (b._z + cb.height); // z方向位移，考虑角色的高度
+
+    // 计算平方距离
     const sqrDist = sqrLength3(nx, ny, nz);
+
+    // 计算碰撞阈值（两个角色半径之和）
     const D = ca.radius + cb.radius;
+
+    // 如果两个角色之间有距离并且距离小于阈值，表示发生碰撞
     if (sqrDist > 0 && sqrDist < D * D) {
+        // 计算碰撞的深度
         const pen = (D / sqrt(sqrDist) - 1) / 2;
+
+        // 根据质量分配碰撞深度，更新位置
         addPos(a, nx, ny, nz, ca.invMass * pen);
         addPos(b, nx, ny, nz, -cb.invMass * pen);
     }
@@ -159,58 +171,76 @@ export const raycastSphereActor = (
     dz: number,
     actor: Actor,
 ): number => {
+    // 从游戏配置中获取指定类型的角色属性
     const props = GAME_CFG.actors[actor._type];
+    // 使用射线和球体之间的碰撞检测函数，返回碰撞点的距离
     return testRayWithSphere(x, y, z, dx, dy, dz, actor._x, actor._y, actor._z + props.height, props.radius);
 };
 
 export const roundActors = (list: Actor[]) => {
+    // 对于输入的角色数组中的每一个角色
     for (const a of list) {
+        // 将角色的 x 坐标舍入到 16 位精度
         a._x = a._x & 0xffff;
+        // 将角色的 y 坐标舍入到 16 位精度
         a._y = a._y & 0xffff;
+        // 将角色的 z 坐标舍入到 16 位精度，并确保其在指定范围内
         a._z = clamp(a._z | 0, 0, (1 << 16) - 1) & 0xffff;
+        // 将角色的 u 坐标舍入到整数，并确保其在指定范围内
         a._u = clamp(a._u | 0, -1024, 1024);
+        // 将角色的 v 坐标舍入到整数，并确保其在指定范围内
         a._v = clamp(a._v | 0, -1024, 1024);
+        // 将角色的 w 坐标舍入到整数，并确保其在指定范围内
         a._w = clamp(a._w | 0, -1024, 1024);
     }
 };
 
 const testRectCircle = (cx: number, cy: number, l: number, t: number, r: number, b: number, out: [number, number]) => {
-    // temporary variables to set edges for testing
-    let testX = cx;
-    let testY = cy;
+    // 临时变量用于设置测试边界
+    let testX = cx; // 初始化 testX 为圆心的 x 坐标
+    let testY = cy; // 初始化 testY 为圆心的 y 坐标
 
-    // which edge is closest?
-    if (cx < l) testX = l; // test left edge
-    else if (cx > r) testX = r; // right edge
-    if (cy < t) testY = t; // top edge
-    else if (cy > b) testY = b; // bottom edge
+    // 哪条边是最近的？
+    if (cx < l) testX = l; // 如果圆心的 x 坐标小于矩形左边界，则最近的 x 坐标为矩形左边界
+    else if (cx > r) testX = r; // 如果圆心的 x 坐标大于矩形右边界，则最近的 x 坐标为矩形右边界
+    if (cy < t) testY = t; // 如果圆心的 y 坐标小于矩形上边界，则最近的 y 坐标为矩形上边界
+    else if (cy > b) testY = b; // 如果圆心的 y 坐标大于矩形下边界，则最近的 y 坐标为矩形下边界
 
-    // get distance from the closest edges
-    const distX = cx - testX;
-    const distY = cy - testY;
-    const distance = sqrt(distX * distX + distY * distY);
+    // 计算到最近边界的距离
+    const distX = cx - testX; // 圆心到最近边界的 x 方向距离
+    const distY = cy - testY; // 圆心到最近边界的 y 方向距离
+    const distance = sqrt(distX * distX + distY * distY); // 圆心到最近边界的距离（勾股定理）
 
-    out[0] = testX;
-    out[1] = testY;
-    // if the distance is less than the radius, collision!
-    return distance;
+    out[0] = testX; // 将最近边界的 x 坐标存储到输出数组的第一个元素
+    out[1] = testY; // 将最近边界的 y 坐标存储到输出数组的第二个元素
+    // 如果距离小于半径，发生碰撞！
+    return distance; // 返回圆心到最近边界的距离
 };
 
 export const checkTileCollisions = (actor: Actor, tilemap: number[]): number => {
+    // 获取角色的配置信息
     const conf = GAME_CFG.actors[actor._type];
+
+    // 计算角色所在的矩形范围
     const x0 = max(0, ((actor._x - conf.radius) / WORLD_SCALE) >> TILE_SIZE_BITS);
     const y0 = max(0, ((actor._y - conf.radius) / WORLD_SCALE) >> TILE_SIZE_BITS);
     const x1 = min(TILE_MAP_STRIDE - 1, ((actor._x + conf.radius) / WORLD_SCALE) >> TILE_SIZE_BITS);
     const y1 = min(TILE_MAP_STRIDE - 1, ((actor._y + conf.radius) / WORLD_SCALE) >> TILE_SIZE_BITS);
+
+    // 初始化最小距离为一个很大的值
     let mindist = 100000.0;
+    // 初始化碰撞点坐标和法向量
     const point: [number, number] = [0, 0];
     let nx = 0;
     let ny = 0;
+
+    // 遍历矩形范围内的每个瓦片
     for (let cy = y0; cy <= y1; ++cy) {
         for (let cx = x0; cx <= x1; ++cx) {
-            // console.log("check tile", cx, cy);
+            // 获取瓦片索引
             const cell = tilemap[cy * TILE_MAP_STRIDE + cx];
             if (cell) {
+                // 如果瓦片不为空，则进行碰撞检测
                 const dist = testRectCircle(
                     actor._x,
                     actor._y,
@@ -220,8 +250,8 @@ export const checkTileCollisions = (actor: Actor, tilemap: number[]): number => 
                     (cy + 1) * WORLD_SCALE * TILE_SIZE,
                     point,
                 );
+                // 如果距离小于角色半径且小于最小距离，则更新最小距离和碰撞点坐标
                 if (dist < conf.radius && dist < mindist) {
-                    // console.log(dist);
                     mindist = dist;
                     nx = point[0] - actor._x;
                     ny = point[1] - actor._y;
@@ -229,13 +259,19 @@ export const checkTileCollisions = (actor: Actor, tilemap: number[]): number => 
             }
         }
     }
+
+    // 如果最小距离小于角色半径，则进行碰撞处理
     if (mindist < conf.radius) {
+        // 计算碰撞点到角色中心的法向量，并归一化
         const normalLen = hypot(nx, ny);
         nx /= normalLen;
         ny /= normalLen;
+        // 将角色位置调整到离碰撞点的距离为 (半径 - 最小距离) 处
         addPos(actor, nx, ny, 0, -(conf.radius - mindist));
+        // 根据碰撞的法向量反射角色的速度，并考虑边界损失
         reflectVelocity(actor, 0, 1, conf.boundsLoss);
-        return 1;
+        return 1; // 返回碰撞标志
     }
-    return 0;
+
+    return 0; // 返回无碰撞标志
 };
