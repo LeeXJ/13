@@ -27,102 +27,105 @@ export const ItemType = {
 } as const;
 export type ItemType = (typeof ItemType)[keyof typeof ItemType];
 
+// 定义 Pos 接口描述位置属性
 export interface Pos {
     /** uint16 **/
+    // x 坐标
     _x: number;
     /** uint16 **/
+    // y 坐标
     _y: number;
     /** uint16 */
+    // z 坐标
     _z: number;
 }
 
+// 定义 Vel 接口描述速度属性
 export interface Vel {
     /** int11 [-1024; +1024] **/
+    // x 方向速度
     _u: number;
     /** int11 [-1024; +1024] **/
+    // y 方向速度
     _v: number;
     /** int11 [-1024; +1024] **/
+    // z 方向速度
     _w: number;
 }
 
+// 定义 Actor 接口，继承自 Pos 和 Vel 接口
 export interface Actor extends Pos, Vel {
+    // 角色类型
     _type: ActorType;
+    // 角色的唯一标识符
     _id: uint32;
 
-    // Item: ItemType subtype
-    // Tree: GFX variation
-    // Bullet: source weapon ID
+    // 物品：ItemType 的子类型
+    // 树木：图形变化
+    // 子弹：来源武器的ID
     _subtype: uint4;
 
-    // Player: reload time
-    // Bullet: life-time
-    // Item: life-time / 3
+    // 玩家：重新装填时间
+    // 子弹：生存时间
+    // 物品：生存时间除以3
     _lifetime: uint8;
 
-    /**
-     * health points [0; 15]
-     **/
+    // 生命值 [0; 15]
     _hp: uint4;
 
-    /**
-     * shield points [0; 15]
-     **/
+    // 护盾值 [0; 15]
     _sp: uint4;
 
-    /**
-     * generated static variation seed value for animation
-     **/
+    // 用于动画生成的静态变化种子值
     _anim0: uint8;
 
-    /**
-     * Hit effect. For Items could not be picked up until it reach 0
-     **/
+    // 击中效果。对于无法捡起的物品，直到达到0为止
     _animHit: uint5;
 
-    /**
-     * local frame-scope state
-     * @transient
-     **/
+    // 本地帧范围状态
+    // @transient 表示此属性是瞬态的，可能不会在序列化时被保存
     _localStateFlags: uint32;
 }
 
+// 定义 PlayerActor 接口，继承自 Actor 接口
 export interface PlayerActor extends Actor {
-    // Player: client ID or NPC ~entityID
-    // 32-bit identifier
+    // 玩家的客户端ID或NPC的实体ID
+    // 32位标识符
     _client: ClientID;
 
-    // Magazines (0..15)
+    // 弹匣数量（0 到 15）
     _mags: uint4;
 
-    // detune counter: 0...32 (max of weapon detune-speed parameter)
+    // 调音计数器：0 到 32（武器调音速度参数的最大值）
     _detune: uint5;
 
-    // 0...63 (max_weapon_clip_reload)
+    // 0 到 63（武器弹匣重新装填的最大值）
     _clipReload: uint6;
 
-    // holding Weapon ID
-    // range: 0...15 currently
+    // 当前持有的武器ID
+    // 范围：0 到 15
     _weapon: uint4;
     _weapon2: uint4;
 
-    // 0...63 (max_weapon_clip_size)
+    // 0 到 63（武器弹匣容量的最大值）
     _clipAmmo: uint6;
     _clipAmmo2: uint6;
 
-    // oh... check down trigger
+    // 检查下压扳机
     _trig: uint4;
 
-    // Input buttons
+    // 输入按钮
     _input: uint32;
 }
 
 export type BarrelActor = Actor;
 
+// 定义 BulletActor 接口，继承自 Actor 接口
 export interface BulletActor extends Actor {
-    // Bullet: owner ID
+    // 子弹的所有者ID，即发射子弹的客户端ID
     _ownerId: ClientID;
 
-    // end of ray projectile (just visuals)
+    // 子弹射程的终点坐标（仅用于视觉效果）
     _x1?: number;
     _y1?: number;
 }
