@@ -171,63 +171,100 @@ export interface PlayerStat {
     _frags: number;
 }
 
+// 定义 StateData 接口
 export interface StateData {
+    // 下一个实体的唯一标识符
     _nextId: number;
+    // 游戏的当前时间或步骤
     _tic: number;
+    // 用于生成随机数的种子
     _seed: number;
-    _actors: [PlayerActor[], BarrelActor[], BulletActor[], ItemActor[]];
+    // 包含游戏中不同类型实体的数组
+    _actors: [
+        PlayerActor[],    // 玩家角色数组
+        BarrelActor[],    // 桶角色数组
+        BulletActor[],    // 子弹角色数组
+        ItemActor[]       // 物品角色数组
+    ];
+    // 存储玩家统计信息的 Map 对象
     _stats: Map<ClientID, PlayerStat>;
 }
 
+// 定义了一个名为 newStateData 的函数，用于创建一个新的 StateData 对象并初始化其属性值
 export const newStateData = (): StateData => ({
+    // 初始化下一个 ID 为 0
     _nextId: 0,
+    // 初始化 tic 为 0
     _tic: 0,
+    // 初始化种子为 0
     _seed: 0,
+    // 初始化 actors 数组为一个空的二维数组，每个子数组都为空
     _actors: [[], [], [], []],
+    // 初始化 stats 为一个空的 Map 对象
     _stats: new Map(),
 });
 
+// 定义了一个名为 cloneStateData 的函数，用于克隆一个状态数据对象
 export const cloneStateData = (stateToCopy: StateData): StateData => ({
+    // 使用对象展开运算符 (...) 克隆 stateToCopy 对象的所有属性和值
     ...stateToCopy,
+    // 克隆 _actors 数组中的每个子数组中的所有元素
     _actors: [
         stateToCopy._actors[0].map(a => ({...a})),
         stateToCopy._actors[1].map(a => ({...a})),
         stateToCopy._actors[2].map(a => ({...a})),
         stateToCopy._actors[3].map(a => ({...a})),
     ],
+    // 使用新的 Map 对象克隆 stateToCopy._stats 中的键值对
     _stats: new Map([...stateToCopy._stats.entries()].map(([k, v]) => [k, {...v}])),
 });
 
 // packet = remote_events[cl.ack + 1] ... remote_events[cl.tic]
+// 定义了一个名为 Packet 的接口，用于描述游戏中用于通信的数据包
 export interface Packet {
+    // 加入状态
     _joinState: JoinState;
-    // confirm the last tic we received from Sender
+    // 确认我们从发送者那里收到的最后一个 tic
     _receivedOnSender: number;
-    // packet contains info tic and before, 22 bits, for 19 hr of game session
+    // 数据包包含的 tic 信息，22 位，用于 19 小时的游戏会话
     _tic: number;
 
-    // timestamps to measure lag between 2 peers
+    // 用于测量两个对等体之间的延迟的时间戳
     _ts0: number;
     _ts1: number;
 
-    // events are not confirmed
+    // 未确认的事件
     _events: ClientEvent[];
-    // DEBUG: check current tic seed
+    // 调试用：检查当前的 tic 种子
     _debug?: PacketDebug;
 }
 
+// 定义了一个名为 PacketDebug 的接口，用于描述调试用途的数据包信息
 export interface PacketDebug {
+    // 下一个实体的唯一标识符
     _nextId: number;
+    // 游戏状态的迭代次数
     _tic: number;
+    // 随机数种子，用于生成随机数序列
     _seed: number;
+    // 可选的状态数据对象，用于包含游戏状态的详细信息
     _state?: StateData;
 }
 
-export const unpackAngleByte = (angleByte: number, res: number) => (PI2 * (angleByte & (res - 1))) / res - PI;
+// 解包角度字节函数
+export const unpackAngleByte = (angleByte: number, res: number) =>
+    // 角度 = (PI2 * (角度字节 & (分辨率 - 1))) / 分辨率 - PI
+    (PI2 * (angleByte & (res - 1))) / res - PI;
 
-export const packAngleByte = (a: number, res: number) => (res * a) & (res - 1);
+// 打包角度字节函数
+export const packAngleByte = (a: number, res: number) =>
+    // 角度字节 = (分辨率 * 角度) & (分辨率 - 1)
+    (res * a) & (res - 1);
 
-export const packDirByte = (x: number, y: number, res: number) => packAngleByte((PI + atan2(y, x)) / PI2, res);
+// 打包方向字节函数
+export const packDirByte = (x: number, y: number, res: number) =>
+    // 打包角度字节((PI + atan2(y, x)) / PI2, 分辨率)
+    packAngleByte((PI + atan2(y, x)) / PI2, res);
 
 /*
     First 19 bits
@@ -235,27 +272,43 @@ export const packDirByte = (x: number, y: number, res: number) => packAngleByte(
 
     Next high 13 bits not used
  */
+// 定义控制标志常量对象
 export const ControlsFlag = {
+    // 移动标志
     Move: 0x1,
+    // 奔跑标志
     Run: 0x2,
+    // 跳跃标志
     Jump: 0x4,
+    // 开火标志
     Fire: 0x8,
+    // 丢弃标志
     Drop: 0x10,
+    // 重新装填标志
     Reload: 0x20,
+    // 切换标志
     Swap: 0x40,
+    // 生成标志
     Spawn: 0x80,
 
-    // 5-bits for Move angle (32 directions)
+    // 移动角度的最大值，用于移动角度的限制
     MoveAngleMax: 0x20,
+    // 移动角度的位数，用于移动角度的位掩码
     MoveAngleBit: 8,
-    // 8-bits for Look angle (256 directions)
+    // 视角角度的最大值，用于视角角度的限制
     LookAngleMax: 0x100,
+    // 视角角度的位数，用于视角角度的位掩码
     LookAngleBit: 13,
 
+    // 按下事件的开火标志
     DownEvent_Fire: 1,
+    // 按下事件的丢弃标志
     DownEvent_Drop: 2,
+    // 按下事件的重新装填标志
     DownEvent_Reload: 4,
+    // 按下事件的切换标志
     DownEvent_Swap: 8,
 } as const;
 
+// 控制标志的类型别名
 export type ControlsFlag = (typeof ControlsFlag)[keyof typeof ControlsFlag];
