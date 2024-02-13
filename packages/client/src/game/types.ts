@@ -127,47 +127,67 @@ export interface BulletActor extends Actor {
     _y1?: number;
 }
 
+// 定义 ItemActor 接口，继承自 Actor 接口
 export interface ItemActor extends Actor {
-    // range: 0...15 currently
+    // 物品的武器类型，范围为 0 到 15
     _itemWeapon: uint4;
-    // 0...63 (max_weapon_clip_size)
+    // 物品武器的弹药数量，范围为 0 到 63（最大武器弹药容量）
     _itemWeaponAmmo: uint6;
 }
 
+// 定义 Client 接口
 export interface Client {
+    // 客户端的唯一标识符
     _id: ClientID;
 
-    // how many MY inputs are acknowledged by remote [remote-ack + 1 .. local tic]
+    // 远程已确认的本地输入的游戏时间
+    // 即从 remote-ack + 1 到本地游戏时间
     _acknowledgedTic: number;
 
-    // completed inputs received from remote
+    // 从远程收到的完成输入的游戏时间
     _tic: number;
+
+    // 客户端连接时的时间戳
     _ts0: number;
+
+    // 客户端最近一次响应的时间戳
     _ts1: number;
+
+    // 客户端的网络延迟（可选）
     _lag?: number;
 
+    // 客户端加入游戏的状态（可选）
     _joinState?: JoinState;
 
-    // client starts play my events
+    // 客户端是否准备好开始游戏（可选）
     _ready?: boolean;
 
-    // I'm playing client's events
+    // 客户端是否正在播放我的事件（可选）
     _isPlaying?: boolean;
 
+    // 客户端开始游戏时的状态数据（可选）
     _startState?: StateData;
+
+    // 客户端是否正在加载状态（可选）
     _loadingState?: boolean;
 }
 
+// 定义 ClientEvent 接口
 export interface ClientEvent {
+    // 客户端事件发生的游戏时间或步骤
     _tic: number;
-    // TODO: rename to `_input`
+    // TODO: 重命名为 `_input`，表示输入事件
     _input?: number;
-    // will be populated from packet info
+    // 将从数据包信息中填充
+    // 事件相关的客户端ID，表示事件发生的客户端
     _client: ClientID;
 }
 
+// 定义 PlayerStat 接口
 export interface PlayerStat {
+    // 玩家得分
     _scores: number;
+    // 玩家击杀数
     _frags: number;
 }
 
