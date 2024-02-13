@@ -3,28 +3,45 @@ import {atan2, PI, PI2} from "../utils/math.js";
 import {JoinState} from "./gameState.js";
 import {uint3, uint32, uint4, uint5, uint6, uint8} from "@iioi/shared/int.js";
 
+// 定义 ActorType 常量对象
 export const ActorType = {
+    // 玩家角色类型
     Player: 0,
+    // 桶角色类型
     Barrel: 1,
+    // 子弹角色类型
     Bullet: 2,
+    // 物品角色类型
     Item: 3,
-    // static game objects
+    // 静态游戏对象
     Tree: 4,
 } as const;
+
+// ActorType 类型别名，类型为 uint3 或 ActorType 常量对象的键的联合类型
 export type ActorType = uint3 | (typeof ActorType)[keyof typeof ActorType];
 
+// 定义 ItemType 常量对象
 export const ItemType = {
+    // 血包类型
     Hp: 0,
+    // 加强血包类型
     Hp2: 1,
+    // 信用类型
     Credit: 2,
+    // 加强信用类型
     Credit2: 3,
+    // 护盾类型
     Shield: 4,
+    // 弹药类型
     Ammo: 5,
-    // FLAG
+    // 标志位，表示武器类型
     Weapon: 8,
 
+    // 子类型掩码
     SubTypeMask: 7,
 } as const;
+
+// ItemType 类型别名，类型为 ItemType 常量对象的键的联合类型
 export type ItemType = (typeof ItemType)[keyof typeof ItemType];
 
 // 定义 Pos 接口描述位置属性
