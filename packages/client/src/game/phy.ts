@@ -12,23 +12,28 @@ export const setRandomPosition = (actor: Actor) => {
 };
 
 export const copyPosFromActorCenter = (to: Pos, from: Pos & {_type: ActorType}) => {
+    // 将目标位置的坐标设为源位置的坐标
     to._x = from._x;
     to._y = from._y;
+    // 将目标位置的 z 坐标设为源位置的 z 坐标加上源角色的高度
     to._z = from._z + GAME_CFG.actors[from._type].height;
 };
 
 export const updateBody = (body: Pos & Vel, gravity: number, loss: number) => {
+    // 根据物体当前的速度，更新物体的位置
     addPos(body, body._u, body._v, body._w);
+    // 如果物体在空中，则考虑重力对其速度的影响
     if (body._z > 0) {
-        body._w -= gravity;
+        body._w -= gravity; // 根据重力减小物体的垂直速度分量
     } else {
-        body._z = 0;
-        if (body._w < 0) {
-            body._w = -body._w / loss;
-            return true;
+        // 如果物体在地面上或者以下，则停止下落并考虑能量损失
+        body._z = 0; // 将物体的高度修正为0（地面）
+        if (body._w < 0) { // 如果物体的垂直速度分量小于0（向下运动）
+            body._w = -body._w / loss; // 根据能量损失因子减小物体的垂直速度分量（模拟能量损失）
+            return true; // 返回true表示物体停止了下落
         }
     }
-    return false;
+    return false; // 返回false表示物体仍然在空中或者在地面上运动
 };
 
 export const updateAnim = (actor: Actor) => {
@@ -36,17 +41,26 @@ export const updateAnim = (actor: Actor) => {
 };
 
 export const updateActorPhysics = (a: Actor, tileMap: number[]) => {
+    // 获取角色的属性配置
     const prop = GAME_CFG.actors[a._type];
+    // 判断角色是否处于弱重力状态（例如玩家在跳跃状态下），以决定使用哪种重力
     const isWeakGravity = a._type === ActorType.Player ? (a as PlayerActor)._input & ControlsFlag.Jump : 0;
+    // 获取世界配置中的重力值
     const worldConfig = GAME_CFG.world;
+    // 根据角色是否处于弱重力状态，选择相应的重力值
     const gravity = isWeakGravity ? worldConfig.gravityWeak : worldConfig.gravity;
+    // 更新角色的物理状态（位置、速度等）
     updateBody(a, gravity, prop.groundLoss);
-    // TODO: ?
+    // TODO: ?  // 待实现的功能或者待解决的问题，这里应该添加一个注释说明
+    // 检查角色与瓦片的碰撞，但具体实现在另一个函数中，此处未提供
     checkTileCollisions(a, tileMap);
+    // 处理角色与边界的碰撞
     collideWithBoundsA(a);
+    // 如果角色在地面上，则应用地面摩擦力
     if (a._z <= 0) {
         applyGroundFriction(a, prop.groundFriction);
     }
+    // 更新角色的动画状态
     updateAnim(a);
 };
 
@@ -56,53 +70,79 @@ export const collideWithBoundsA = (body: Actor): number => {
 };
 
 export const collideWithBounds = (body: Vel & Pos, radius: number, loss: number): number => {
-    let has = 0;
-    if (body._y > WORLD_BOUNDS_SIZE - radius) {
-        body._y = WORLD_BOUNDS_SIZE - radius;
-        has |= 2;
-        reflectVelocity(body, 0, 1, loss);
-    } else if (body._y < radius) {
-        body._y = radius;
-        has |= 2;
-        reflectVelocity(body, 0, 1, loss);
+    let has = 0; // 初始化标志位
+
+    // 检查上下边界的碰撞
+    if (body._y > WORLD_BOUNDS_SIZE - radius) { // 如果物体下边界超出了世界边界
+        body._y = WORLD_BOUNDS_SIZE - radius; // 将物体位置修正到世界边界上
+        has |= 2; // 更新标志位，表示发生了上下边界的碰撞
+        reflectVelocity(body, 0, 1, loss); // 根据法线(0,1)反射速度向量
+    } else if (body._y < radius) { // 如果物体上边界超出了世界边界
+        body._y = radius; // 将物体位置修正到世界边界上
+        has |= 2; // 更新标志位，表示发生了上下边界的碰撞
+        reflectVelocity(body, 0, 1, loss); // 根据法线(0,1)反射速度向量
     }
-    if (body._x > WORLD_BOUNDS_SIZE - radius) {
-        body._x = WORLD_BOUNDS_SIZE - radius;
-        has |= 4;
-        reflectVelocity(body, 1, 0, loss);
-    } else if (body._x < radius) {
-        body._x = radius;
-        has |= 4;
-        reflectVelocity(body, 1, 0, loss);
+
+    // 检查左右边界的碰撞
+    if (body._x > WORLD_BOUNDS_SIZE - radius) { // 如果物体右边界超出了世界边界
+        body._x = WORLD_BOUNDS_SIZE - radius; // 将物体位置修正到世界边界上
+        has |= 4; // 更新标志位，表示发生了左右边界的碰撞
+        reflectVelocity(body, 1, 0, loss); // 根据法线(1,0)反射速度向量
+    } else if (body._x < radius) { // 如果物体左边界超出了世界边界
+        body._x = radius; // 将物体位置修正到世界边界上
+        has |= 4; // 更新标志位，表示发生了左右边界的碰撞
+        reflectVelocity(body, 1, 0, loss); // 根据法线(1,0)反射速度向量
     }
-    return has;
+
+    return has; // 返回标志位，表示碰撞情况
 };
 
 export const addRadialVelocity = (vel: Vel, a: number, velXYLen: number, velZ: number) => {
-    addVelocityDir(vel, velXYLen * cos(a), (velXYLen * sin(a)) / 2, velZ);
+    // 计算水平方向上的速度分量，根据极角和长度使用三角函数计算
+    const velX = velXYLen * Math.cos(a);
+    // 计算垂直方向上的速度分量，根据极角和长度使用三角函数计算
+    const velY = (velXYLen * Math.sin(a)) / 2;
+    // 调用另一个函数来更新速度向量，将水平和垂直方向上的速度分量和垂直方向上的速度分量传递给该函数
+    addVelocityDir(vel, velX, velY, velZ);
 };
 
 export const reflectVelocity = (v: Vel, nx: number, ny: number, loss: number) => {
-    // r = d - 2(d⋅n)n
+    // 计算入射向量与法线向量的点积的两倍
     const Z = 2 * (v._u * nx + v._v * ny);
+    // 使用反射公式更新速度向量的 x 分量
     v._u = (v._u - Z * nx) / loss;
+    // 使用反射公式更新速度向量的 y 分量
     v._v = (v._v - Z * ny) / loss;
 };
 
 export const limitVelocity = (v: Vel, len: number) => {
+    // 计算速度向量的长度的平方
     let l = v._u * v._u + v._v * v._v;
+
+    // 如果速度向量的长度的平方大于指定长度的平方
     if (l > len * len) {
+        // 计算速度向量的归一化因子
         l = len / sqrt(l);
+
+        // 将速度向量乘以归一化因子，以限制速度的大小
         v._u *= l;
         v._v *= l;
     }
 };
 
 export const applyGroundFriction = (p: Actor, amount: number) => {
+    // 计算角色当前速度的平方
     let v0 = p._u * p._u + p._v * p._v;
+    
+    // 如果速度的平方大于0，表示角色有运动
     if (v0 > 0) {
+        // 计算速度的大小
         v0 = sqrt(v0);
+        
+        // 根据摩擦力量来调整速度
         v0 = reach(v0, 0, amount) / v0;
+        
+        // 将调整后的速度应用到角色的 u 和 v 分量上
         p._u *= v0;
         p._v *= v0;
     }
@@ -129,10 +169,18 @@ export const sqrDistXY = (a: Actor, b: Actor) => {
 };
 
 export const testIntersection = (a: Actor, b: Actor): boolean => {
+    // 获取角色 a 和角色 b 的配置信息
     const ca = GAME_CFG.actors[a._type];
     const cb = GAME_CFG.actors[b._type];
+
+    // 计算两个角色的半径之和
     const D = ca.radius + cb.radius;
-    return sqrLength3(a._x - b._x, a._y - b._y, a._z + ca.height - b._z - cb.height) < D * D;
+
+    // 计算两个角色之间的距离的平方
+    const sqrDist = sqrLength3(a._x - b._x, a._y - b._y, a._z + ca.height - b._z - cb.height);
+
+    // 如果两个角色之间的距离的平方小于半径之和的平方，则表示两个角色相交
+    return sqrDist < D * D;
 };
 
 export const checkBodyCollision = (a: Actor, b: Actor) => {
