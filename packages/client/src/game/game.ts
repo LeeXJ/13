@@ -1504,35 +1504,42 @@ const updatePlayer = (player: PlayerActor) => {
     }
 };
 
+// 定义一个名为 beginPrediction 的函数，它没有参数，并返回一个布尔值
 const beginPrediction = (): boolean => {
-    // if (!Const.Prediction || time < 0.001) return false;
+    // 如果禁用了预测功能（Const.Prediction 为假）或者游戏加入状态不是已加入状态，则返回 false
     if (!Const.Prediction || game._joinState !== JoinState.Joined) return false;
 
-    // global state
+    // 计算预测的帧数，取最小值为 Const.PredictionMax 和 ((lastFrameTs - game._prevTime) * Const.NetFq) | 0
     let frames = min(Const.PredictionMax, ((lastFrameTs - game._prevTime) * Const.NetFq) | 0);
+    // 如果计算出的帧数为 0，则返回 false
     if (!frames) return false;
 
-    // save particles
+    // 保存粒子效果和游戏摄像机状态
     saveParticles();
     saveGameCamera();
 
-    // save state
+    // 保存游戏状态
     game._lastState = game._state;
     game._state = cloneStateData(game._state);
 
-    // && gameTic <= lastInputTic
+    // 模拟 tic，进行预测
     while (frames--) {
         simulateTic(true);
     }
+    // 返回 true，表示预测开始
     return true;
 };
 
+// 定义一个名为 endPrediction 的函数，不接受任何参数
 const endPrediction = () => {
-    // global state
+    // 全局状态回滚到上一个状态
     game._state = game._lastState;
+    // 将当前游戏状态的随机数种子恢复为上一个状态的种子
     _SEEDS[0] = game._state._seed;
+    // 将游戏时钟回滚到上一个状态的时钟值加 1
     game._gameTic = game._state._tic + 1;
-    // restore particles
+    // 恢复粒子效果
     restoreParticles();
+    // 恢复游戏摄像机
     restoreGameCamera();
 };
