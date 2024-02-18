@@ -801,29 +801,44 @@ const printStatus = () => {
     }
 };
 
+// 定义一个名为 drawTiles 的函数，它接受一个名为 blocks 的数组作为参数
 const drawTiles = (blocks: number[]) => {
+    // 获取当前 WebGL 上下文的绘图缓冲区的宽度和高度
     const W = gl.drawingBufferWidth;
     const H = gl.drawingBufferHeight;
+    // 获取游戏相机的 X 和 Y 坐标
     const cameraX = gameCamera._x;
     const cameraY = gameCamera._y;
+    // 计算相机的缩放因子的倒数，并将结果除以 2，并将结果赋给 invScale 变量
     const invScale = gameCamera._scale / 2;
-    // const invScale = gameCamera._scale / 4;
+    // 设置瓦片大小为常量 TILE_SIZE
     const sz = TILE_SIZE;
+    // 设置绘制高度为 14
     const height = 14;
+    // 计算左边界、顶部边界、右边界和底部边界
     const l = max(0, (-invScale * W + cameraX) >> TILE_SIZE_BITS);
     const t = max(0, (-invScale * H + cameraY) >> TILE_SIZE_BITS);
     const r = min(TILE_MAP_STRIDE - 1, (invScale * W + cameraX + sz) >> TILE_SIZE_BITS);
     const b = min(TILE_MAP_STRIDE - 1, (invScale * H + cameraY + sz) >> TILE_SIZE_BITS);
+    // 循环遍历每个瓦片块
     for (let cy = b; cy >= t; --cy) {
         for (let cx = l; cx <= r; ++cx) {
+            // 获取当前瓦片块的值
             const b = blocks[cy * TILE_MAP_STRIDE + cx];
+            // 如果当前瓦片块的值存在（非零）
             if (b) {
+                // 计算瓦片块的实际 X 和 Y 坐标
                 const x = cx << TILE_SIZE_BITS;
                 const y = cy << TILE_SIZE_BITS;
+                // 设置绘制深度为 height
                 setDrawZ(height);
-
+                // 绘制一个正常方向的图像（mesh sprite），该图像为 Img.box_lt
+                // 图像的左上角位于 (x, y)，大小为 sz，图层为 1，颜色为 0x444444，旋转角度为 0 度
                 drawMeshSprite(img[Img.box_lt], x, y, 0, sz, sz, 1, 0x444444, 0, 0);
+                // 如果当前瓦片块的值为 3
                 if (b === 3) {
+                    // 绘制一个朝上方向的图像（mesh sprite），该图像为 Img.box_lt
+                    // 图像的左上角位于 (x, y + sz)，高度为 height，大小为 sz，图层为 1，颜色为 0x888888，旋转角度为 0 度
                     drawMeshSpriteUp(img[Img.box_lt], x, y + sz, height, 0, sz, height, 1, 0x888888, 0, 0);
                 }
             }
@@ -831,25 +846,37 @@ const drawTiles = (blocks: number[]) => {
     }
 };
 
+// 定义一个名为 drawTilesShadows 的函数，它接受一个名为 blocks 的数组作为参数
 const drawTilesShadows = (blocks: number[]) => {
+    // 获取当前 WebGL 上下文的绘图缓冲区的宽度和高度
     const W = gl.drawingBufferWidth;
     const H = gl.drawingBufferHeight;
+    // 获取游戏相机的 X 和 Y 坐标
     const cameraX = gameCamera._x;
     const cameraY = gameCamera._y;
+    // 计算相机的缩放因子的倒数，并将结果除以 2，并将结果赋给 invScale 变量
     const invScale = gameCamera._scale / 2;
-    // const invScale = gameCamera._scale / 4;
+    // 设置瓦片大小为常量 TILE_SIZE
     const sz = TILE_SIZE;
+    // 计算左边界、顶部边界、右边界和底部边界
     const l = max(0, (-invScale * W + cameraX) >> TILE_SIZE_BITS);
     const t = max(0, (-invScale * H + cameraY) >> TILE_SIZE_BITS);
     const r = min(TILE_MAP_STRIDE - 1, (invScale * W + cameraX + sz) >> TILE_SIZE_BITS);
     const b = min(TILE_MAP_STRIDE - 1, (invScale * H + cameraY + sz) >> TILE_SIZE_BITS);
+    // 设置绘制的 Z 轴深度
     setDrawZ(0.01);
+    // 循环遍历每个瓦片块
     for (let cy = b; cy >= t; --cy) {
         for (let cx = l; cx <= r; ++cx) {
+            // 获取当前瓦片块的值
             const b = blocks[cy * TILE_MAP_STRIDE + cx];
+            // 如果当前瓦片块的值为 3
             if (b === 3) {
+                // 计算瓦片块的实际 X 和 Y 坐标
                 const x = cx << TILE_SIZE_BITS;
                 const y = cy << TILE_SIZE_BITS;
+                // 绘制一个图像的一部分（mesh sprite），该图像为 Img.box_lt
+                // 图像的左上角位于 (x, y + sz)，大小为 sz，图层为 2，透明度为 0.4，旋转角度为 0 度
                 drawMeshSprite(img[Img.box_lt], x, y + sz, 0, sz, 2, 0.4, 0, 0, 0);
             }
         }
