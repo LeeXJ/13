@@ -740,61 +740,97 @@ const getWeaponInfoHeader = (wpn: number, ammo: number, reload = 0): string => {
     return "";
 };
 
+// 定义一个名为 printStatus 的函数，不接受任何参数
 const printStatus = () => {
+    // 检查是否有客户端连接
     if (clientId) {
+        // 如果游戏的加入状态为已加入
         if (game._joinState === JoinState.Joined) {
+            // 获取当前客户端的玩家对象
             const p0 = getMyPlayer();
+            // 如果玩家对象存在
             if (p0) {
+                // 初始化空字符串用于存储状态信息
                 let str = "";
+                // 获取玩家当前的生命值（hp）
                 const hp = p0._hp;
+                // 循环10次，每次增加2
                 for (let i = 0; i < 10; ) {
+                    // 检查当前生命值是否大于当前循环次数（i），并递增 i
                     const o2 = hp > i++;
+                    // 检查当前生命值是否大于当前循环次数（i），并递增 i
                     const o1 = hp > i++;
+                    // 根据 o1 和 o2 的值，向 str 添加相应的表情符号
                     str += o1 ? "❤️" : o2 ? "💔" : "🖤";
                 }
+                // 获取玩家当前的魔法值（sp）
                 const sp = p0._sp;
+                // 循环10次，每次增加2
                 for (let i = 0; i < 10; ) {
+                    // 检查当前魔法值是否大于当前循环次数（i），并递增 i
                     const o2 = sp > i++;
+                    // 检查当前魔法值是否大于当前循环次数（i），并递增 i
                     const o1 = sp > i++;
+                    // 根据 o1 和 o2 的值，向 str 添加相应的表情符号
                     str += o1 ? "🛡" : o2 ? "🪖️️" : "";
                 }
+                // 在终端打印玩家的状态信息
                 termPrint(str);
                 {
+                    // 获取玩家的武器信息头部
                     let wpnInfo = getWeaponInfoHeader(p0._weapon, p0._clipAmmo, p0._clipReload);
+                    // 如果玩家有第二个武器
                     if (p0._weapon2) {
+                        // 添加第二个武器的信息到 wpnInfo 中
                         wpnInfo += " | " + getWeaponInfoHeader(p0._weapon2, p0._clipAmmo2);
                     }
+                    // 在终端打印武器信息
                     termPrint(wpnInfo);
                 }
+                // 在终端打印玩家当前拥有的子弹数量
                 termPrint(`🧱${p0._mags}`);
             }
         } else {
+            // 如果游戏的加入状态不为已加入，则在终端打印 "joining"
             termPrint("joining");
         }
 
+        // 定义一个函数，用于获取玩家的图标
         const getPlayerIcon = (id?: ClientID) => {
+            // 根据客户端 ID 获取玩家对象
             const player = getPlayerByClient(id);
+            // 如果玩家对象存在，则返回对应的表情符号；否则返回默认图标
             return player ? EMOJI[Img.avatar0 + (player._anim0 % Img.num_avatars)] : "👁️";
         };
+        // 定义一个函数，用于获取玩家的状态信息
         const getPlayerStatInfo = (id?: ClientID): string => {
+            // 根据客户端 ID 获取玩家的状态对象
             const stat = game._state._stats.get(id);
+            // 返回玩家的击杀数和得分
             return `|☠${stat?._frags ?? 0}|🪙${stat?._scores ?? 0}`;
         };
 
+        // 如果游戏处于回放模式
         if (gameMode._replay) {
+            // 遍历远程客户端列表，打印每个远程客户端的图标、名称和状态信息
             for (const [id, rc] of remoteClients) {
                 termPrint(getPlayerIcon(id) + rc._name + getPlayerStatInfo(id));
             }
         } else {
+            // 在终端打印当前客户端的图标、名称和状态信息
             termPrint(getPlayerIcon(clientId) + clientName + getPlayerStatInfo(clientId));
+            // 遍历远程客户端列表，打印每个远程客户端的图标、名称和状态信息，以及连接状态（如果开发标志为 true）
             for (const [id, rc] of remoteClients) {
+                // 构建要打印的文本信息
                 let text = (isPeerConnected(rc) ? getPlayerIcon(id) : "🔴") + rc._name + getPlayerStatInfo(id);
+                // 如果开发标志为 true，添加远程客户端的延迟信息
                 if (getDevFlag()) {
                     const cl = game._clients.get(id);
                     if (cl && cl._lag !== undefined) {
                         text += " " + cl._lag;
                     }
                 }
+                // 在终端打印文本信息
                 termPrint(text);
             }
         }
