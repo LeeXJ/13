@@ -1285,22 +1285,35 @@ const swapWeaponSlot = (player: PlayerActor) => {
 };
 
 const needReloadWeaponIfOutOfAmmo = (player: PlayerActor) => {
+    // 获取武器配置
     const weapons = GAME_CFG.weapons;
+
+    // 如果玩家有武器，并且当前没有正在进行的弹夹重新装填
     if (player._weapon && !player._clipReload) {
         const weapon = weapons[player._weapon];
+
+        // 如果武器具有弹夹大小，且当前弹夹为空
         if (weapon.clipSize && !player._clipAmmo) {
+            // 如果玩家有备用弹夹
             if (player._mags) {
-                // start auto reload
+                // 开始自动重新装填
                 player._clipReload = weapon.clipReload;
             }
-            // auto swap to available full weapon
+            // 否则自动切换到可用的满弹药的武器
             else {
+                // 如果玩家有第二武器，并且第二武器有弹药，或者没有弹夹大小（即无需弹药）
                 if (player._weapon2 && (player._clipAmmo2 || !weapons[player._weapon2].clipSize)) {
+                    // 切换武器槽
                     swapWeaponSlot(player);
                 }
+
+                // 如果当前是我的玩家，并且没有触发开火事件
                 if (isMyPlayer(player) && !(player._trig & ControlsFlag.DownEvent_Fire)) {
+                    // 添加文字粒子效果显示“武器为空”
                     addTextParticle(player, L("weapon_empty"));
                 }
+
+                // 设置玩家生命周期为当前武器的重新装填时间
                 player._lifetime = weapon.reloadTime;
             }
         }
@@ -1308,7 +1321,9 @@ const needReloadWeaponIfOutOfAmmo = (player: PlayerActor) => {
 };
 
 const calcVelocityWithWeapon = (player: PlayerActor, velocity: number): number => {
+    // 如果玩家有武器，则使用该武器的移动权重系数，否则默认为1.0
     const k = player._weapon ? GAME_CFG.weapons[player._weapon].moveWeightK : 1.0;
+    // 计算带有武器时的速度，并将结果取整
     return (velocity * k) | 0;
 };
 
