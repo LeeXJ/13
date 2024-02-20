@@ -743,55 +743,81 @@ const setCurrentWeapon = (player: PlayerActor, weaponId: number) => {
 };
 
 const dropWeapon1 = (player: PlayerActor) => {
+    // 获取玩家当前的视角角度
     const lookAngle = unpackAngleByte(player._input >> ControlsFlag.LookAngleBit, ControlsFlag.LookAngleMax);
+    // 计算视角方向的 x 和 y 分量
     const lookDirX = cos(lookAngle);
     const lookDirY = sin(lookAngle);
 
+    // 创建一个武器道具对象
     const item = createItemActor(ItemType.Weapon);
+    // 将道具对象的位置设置为玩家中心位置
     copyPosFromActorCenter(item, player);
+    // 将道具对象的位置向前移动，与玩家的视角方向保持一致
     addPos(item, lookDirX, lookDirY, 0, OBJECT_RADIUS);
+    // 将道具对象的速度设置为玩家的速度
     addVelFrom(item, player);
+    // 将道具对象的速度朝特定方向增加一定值
     addVelocityDir(item, lookDirX, lookDirY, 0, 64);
-    // set weapon item
+    // 设置道具对象的武器类型和弹药数量
     item._itemWeapon = player._weapon;
     item._itemWeaponAmmo = player._clipAmmo;
+    // 清空玩家当前持有的第一武器和对应的弹药数量
     player._weapon = 0;
     player._clipAmmo = 0;
 };
 
 const lateUpdateDropButton = (player: PlayerActor) => {
+    // 如果玩家按下了丢弃物品的输入
     if (player._input & ControlsFlag.Drop) {
+        // 如果丢弃物品的按下事件尚未触发过
         if (!(player._trig & ControlsFlag.DownEvent_Drop)) {
+            // 设置丢弃物品的按下事件已触发
             player._trig |= ControlsFlag.DownEvent_Drop;
+            // 如果玩家当前持有武器
             if (player._weapon) {
+                // 丢弃第一武器
                 dropWeapon1(player);
+                // 如果玩家同时持有第二武器
                 if (player._weapon2) {
+                    // 切换武器槽
                     swapWeaponSlot(player);
                 }
             }
         }
     } else {
+        // 如果玩家未按下丢弃物品的按钮，则重置丢弃物品的按下事件
         player._trig &= ~ControlsFlag.DownEvent_Drop;
     }
 };
 
 const updateWeaponPickup = (item: ItemActor, player: PlayerActor) => {
+    // 如果玩家按下了丢弃物品的输入
     if (player._input & ControlsFlag.Drop) {
+        // 如果丢弃物品的按下事件尚未触发过
         if (!(player._trig & ControlsFlag.DownEvent_Drop)) {
+            // 设置丢弃物品的按下事件已触发
             player._trig |= ControlsFlag.DownEvent_Drop;
+            // 如果第二武器槽为空，则交换第一和第二武器
             if (!player._weapon2) {
                 swapWeaponSlot(player);
             } else {
-                // if 2 slot occupied - replace 1-st weapon
+                // 如果第二武器槽被占用，则替换第一武器
                 dropWeapon1(player);
             }
+            // 设置当前武器为拾取的武器
             setCurrentWeapon(player, item._itemWeapon);
+            // 如果拾取的物品是弹药类型，则增加弹匣数量
             if (item._subtype & ItemType.Ammo) {
                 const itemMags = 1;
+                // 将弹匣数量限制在最大值10以内
                 player._mags = min(10, player._mags + itemMags);
             }
+            // 设置玩家当前弹药数量为拾取的武器所包含的弹药数量
             player._clipAmmo = item._itemWeaponAmmo;
+            // 播放拾取音效
             playAt(player, Snd.pick);
+            // 重置拾取物品的生命值和类型
             item._hp = item._subtype = 0;
         }
     }
