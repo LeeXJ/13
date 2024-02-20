@@ -150,19 +150,28 @@ import {logScreenView} from "../analytics.js";
 import {L} from "../assets/text.js";
 
 const createItemActor = (subtype: number): ItemActor => {
+    // 创建一个新的物品角色对象，其类型由参数 subtype 指定
     const item = newItemActor(subtype);
+    // 将创建的物品角色对象添加到游戏中
     pushActor(item);
+    // 返回创建的物品角色对象
     return item;
 };
 
 const createRandomItem = (): ItemActor => createItemActor(rand(6));
 
 const requireClient = (id: ClientID): Client =>
+    // 使用 getOrCreate 函数获取游戏客户端对象，如果不存在则创建一个新的客户端对象并返回
     getOrCreate(game._clients, id, () => ({
+        // 客户端ID
         _id: id,
+        // 客户端游戏状态
         _tic: 0,
+        // 时间戳0
         _ts0: 0,
+        // 时间戳1
         _ts1: 0,
+        // 已确认的游戏状态
         _acknowledgedTic: 0,
     }));
 
@@ -246,10 +255,13 @@ const recreateMap = (themeIdx: number, seed: number) => {
 };
 
 const pushActor = <T extends Actor>(a: T) => {
+    // 获取相应类型的角色列表
     const list = game._state._actors[a._type as 0 | 1 | 2 | 3] as T[];
+    // 在开发环境下，检查角色列表是否存在且当前角色对象不在列表中
     if (process.env.NODE_ENV === "development") {
         console.assert(list && list.indexOf(a) < 0);
     }
+    // 为角色对象分配一个唯一的 ID，并将其添加到角色列表中
     a._id = game._state._nextId++;
     list.push(a);
 };
