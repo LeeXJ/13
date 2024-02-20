@@ -296,30 +296,43 @@ export const createSeedGameState = () => {
 };
 
 export const createSplashState = () => {
+    // 将游戏的加入状态设置为已加入
     game._joinState = JoinState.Joined;
+
+    // 设置游戏的初始时钟为 1
     game._gameTic = 1;
+
+    // 设置游戏状态的种子为预定义数组中的第一个种子
     game._state._seed = _SEEDS[0];
+
+    // 根据随机数重新创建地图，随机选择地图模板和种子
     recreateMap(Math.floor(Math.random() * 3), newSeedFromTime());
+
+    // 创建 13 个玩家角色并设置其初始属性和位置
     for (let i = 0; i < 13; ++i) {
-        const k = i / 13;
-        const player = newPlayerActor();
-        player._client = 1 + i;
-        player._hp = 10;
-        player._mags = 10;
-        player._sp = 10;
-        setCurrentWeapon(player, 1 + (i % (GAME_CFG.weapons.length - 1)));
-        player._anim0 = i + rand(10) * Img.num_avatars;
-        player._input = packAngleByte(k, ControlsFlag.LookAngleMax) << ControlsFlag.LookAngleBit;
-        const D = 80 + 20 * sqrt(random());
-        player._x = (BOUNDS_SIZE / 2 + D * cos(k * PI2)) * WORLD_SCALE;
-        player._y = (BOUNDS_SIZE / 2 + D * sin(k * PI2) + 10) * WORLD_SCALE;
-        pushActor(player);
+        const k = i / 13; // 计算角色位置所需的系数
+        const player = newPlayerActor(); // 创建新的玩家角色实例
+        player._client = 1 + i; // 设置玩家的客户端 ID
+        player._hp = 10; // 设置玩家的生命值
+        player._mags = 10; // 设置玩家的弹夹数量
+        player._sp = 10; // 设置玩家的能量值
+        setCurrentWeapon(player, 1 + (i % (GAME_CFG.weapons.length - 1))); // 设置玩家的当前武器
+        player._anim0 = i + rand(10) * Img.num_avatars; // 设置玩家的动画帧
+        player._input = packAngleByte(k, ControlsFlag.LookAngleMax) << ControlsFlag.LookAngleBit; // 设置玩家的输入
+        const D = 80 + 20 * sqrt(random()); // 计算玩家与中心的距离
+        player._x = (BOUNDS_SIZE / 2 + D * cos(k * PI2)) * WORLD_SCALE; // 设置玩家的 x 坐标
+        player._y = (BOUNDS_SIZE / 2 + D * sin(k * PI2) + 10) * WORLD_SCALE; // 设置玩家的 y 坐标
+        pushActor(player); // 将玩家角色加入游戏中
     }
+
+    // 设置游戏摄像机的初始位置为地图中心
     gameCamera._x = gameCamera._y = BOUNDS_SIZE / 2;
-    gameMode._hasPlayer = false;
-    gameMode._tiltCamera = 0.05;
-    gameMode._bloodRain = true;
-    gameMode._title = true;
+
+    // 初始化游戏模式属性
+    gameMode._hasPlayer = false; // 游戏模式中是否有玩家
+    gameMode._tiltCamera = 0.05; // 摄像机倾斜度
+    gameMode._bloodRain = true; // 是否开启血雨效果
+    gameMode._title = true; // 是否显示标题
 };
 
 export const updateGame = (ts: number) => {
