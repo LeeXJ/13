@@ -267,31 +267,48 @@ const pushActor = <T extends Actor>(a: T) => {
 };
 
 const initBarrels = () => {
-    const count = GAME_CFG.barrels.initCount;
-    const hp = GAME_CFG.barrels.hp;
+    // 获取桶的初始数量和初始生命值
+    const count = GAME_CFG.barrels.initCount; // 桶的初始数量
+    const hp = GAME_CFG.barrels.hp; // 桶的初始生命值范围
 
-    for (let i = 0; i < count && mapItemSlots.length; ++i) {
-        const sloti = rand(mapItemSlots.length);
-        const slot = mapItemSlots[sloti];
-        mapItemSlots.splice(sloti, 1);
+    // 循环创建指定数量的桶，并放置在地图上的随机位置上
+    for (let i = 0; i < count && mapItemSlots.length; ++i) { // 遍历桶的数量，且确保还有地图空位
+        const sloti = rand(mapItemSlots.length); // 随机选择一个地图空位的索引
+        const slot = mapItemSlots[sloti]; // 获取对应索引的地图空位
+        mapItemSlots.splice(sloti, 1); // 将选中的地图空位从可用列表中移除
 
+        // 创建一个新的桶实例
         const barrel: BarrelActor = newActor(ActorType.Barrel);
+        // 设置桶的生命值为随机值，取自生命值范围内
         barrel._hp = hp[0] + rand(hp[1] - hp[0]);
+        // 设置桶的子类型为随机值，可用于区分不同类型的桶
         barrel._subtype = rand(2);
-        //setRandomPosition(barrel);
-        barrel._x = slot._x * TILE_SIZE * WORLD_SCALE;
-        barrel._y = slot._y * TILE_SIZE * WORLD_SCALE;
+        // 设置桶的位置为选中的地图空位位置
+        barrel._x = slot._x * TILE_SIZE * WORLD_SCALE; // 将 x 坐标转换为世界坐标
+        barrel._y = slot._y * TILE_SIZE * WORLD_SCALE; // 将 y 坐标转换为世界坐标
 
+        // 将创建的桶实例加入游戏中
         pushActor(barrel);
     }
 };
 
 export const createSeedGameState = () => {
+    // 输出日志，表示正在创建初始游戏状态（第一个玩家）
     console.log("create initial game state (first player)");
+
+    // 将游戏的加入状态设置为同步
     game._joinState = JoinState.Sync;
+
+    // 设置游戏的初始时钟为 1
     game._gameTic = 1;
+
+    // 设置游戏状态的种子为预定义数组中的第一个种子
     game._state._seed = _SEEDS[0];
+
+    // 重新创建地图，使用当前房间的地图主题和种子
     recreateMap(_room._mapTheme, _room._mapSeed);
+
+    // 初始化地图中的桶（可能是游戏中的可交互对象之一）
     initBarrels();
 };
 
