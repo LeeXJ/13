@@ -683,27 +683,40 @@ const processPacket = (sender: Client, data: Packet) => {
 
 onGetGameState(() => {
     try {
+        // 如果加入状态小于同步状态，则返回空字符串
         if (game._joinState < JoinState.Sync) {
             return "";
         }
+        // 将游戏状态序列化为字节数组
         const len = writeState(game._state, _packetBuffer, 0) << 2;
+        // 将字节数组转换为字符串表示
         const res = fromByteArray(new Uint8Array(_packetBuffer.buffer, 0, len));
+        // 输出序列化游戏状态的信息
         console.info("serializing game state #", game._state._tic, "byteLength:", len);
+        // 返回序列化后的字符串表示
         return res;
     } catch (e) {
+        // 捕获异常并输出警告信息
         console.warn("error serializing game state", e);
     }
 });
 
 setPacketHandler((from: ClientID, buffer: ArrayBuffer) => {
+    // 如果服务器端事件状态小于3，即未完全连接，则不处理数据包
     if (_sseState < 3) {
         return;
     }
+    // 处理数据包，解析数据并进行处理
     processPacket(requireClient(from), unpack(from, new Int32Array(buffer)));
+    // 如果当前页面被隐藏
     if (document.hidden) {
+        // 更新帧时间
         updateFrameTime(performance.now() / 1000);
+        // 清理客户端
         cleaningUpClients();
+        // 尝试运行游戏逻辑
         if (tryRunTicks(lastFrameTs)) {
+            // 发送玩家输入信息
             sendInput();
         }
     }
@@ -712,31 +725,44 @@ setPacketHandler((from: ClientID, buffer: ArrayBuffer) => {
 let disconnectTimes = 0;
 
 const cleaningUpClients = () => {
+    // 遍历游戏客户端集合
     for (const [id] of game._clients) {
+        // 如果在远程客户端集合中不存在当前客户端的ID，则从游戏客户端集合中删除该客户端
         if (!remoteClients.has(id)) {
             game._clients.delete(id);
         }
     }
 
+    // 如果存在客户端ID，并且加入状态为同步状态
     if (clientId && game._joinState >= JoinState.Sync) {
+        let disconnectTimes = 0;
+        // 遍历远程客户端集合
         for (const [id, rc] of remoteClients) {
+            // 如果游戏客户端中存在该ID对应的客户端，并且该客户端处于准备就绪状态，且远程客户端未连接
             if (game._clients.get(id)?._ready && !isPeerConnected(rc)) {
+                // 如果断开连接次数超过5分钟
                 if (++disconnectTimes > 60 * 5) {
+                    // 断开连接，并提示超时错误
                     disconnect("Timeout error: peer can't be connected for given time");
                 }
                 return;
             }
         }
     }
+    // 重置断开连接次数
     disconnectTimes = 0;
 };
 
 /// Game logic
 
 const setCurrentWeapon = (player: PlayerActor, weaponId: number) => {
+    // 设置玩家当前武器的ID
     player._weapon = weaponId;
+    // 获取武器配置
     const weapon = GAME_CFG.weapons[weaponId];
+    // 如果武器配置存在
     if (weapon) {
+        // 清空当前弹药重装状态，并设置当前弹药数量为武器的弹匣容量
         player._clipReload = 0;
         player._clipAmmo = weapon.clipSize;
     }
