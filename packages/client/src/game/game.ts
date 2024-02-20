@@ -906,12 +906,16 @@ const updateGameCamera = () => {
 };
 
 const checkBulletCollision = (bullet: BulletActor, actor: Actor) => {
+    // 如果子弹有生命值（_hp）、类型（_subtype）和_ownerId属性
     if (
         bullet._hp &&
         bullet._subtype /* weaponID */ &&
+        // 根据_ownerId判断是否为同一玩家的子弹
         (bullet._ownerId > 0 ? bullet._ownerId - ((actor as PlayerActor)._client | 0) : -bullet._ownerId - actor._id) &&
+        // 检测子弹和角色是否相交
         testIntersection(bullet, actor)
     ) {
+        // 如果相交，则调用hitWithBullet函数处理碰撞
         hitWithBullet(actor, bullet);
     }
 };
@@ -1167,7 +1171,9 @@ const kill = (actor: Actor) => {
 };
 
 const getBulletWeapon = (bullet: BulletActor): WeaponConfig | undefined => {
+    // 如果子弹的类型不为空
     if (bullet._subtype) {
+        // 返回对应类型的武器配置
         return GAME_CFG.weapons[bullet._subtype];
     }
 };
@@ -1276,10 +1282,15 @@ const hitWithBullet = (actor: Actor, bullet: BulletActor, bulletImpactParticles 
 };
 
 const swapWeaponSlot = (player: PlayerActor) => {
+    // 保存当前武器和弹药到临时变量
     const weapon = player._weapon;
     const ammo = player._clipAmmo;
+
+    // 将第二武器和弹药分别赋值给当前武器和弹药
     player._weapon = player._weapon2;
     player._clipAmmo = player._clipAmmo2;
+
+    // 将临时变量中保存的当前武器和弹药赋值给第二武器和弹药
     player._weapon2 = weapon;
     player._clipAmmo2 = ammo;
 };
