@@ -175,32 +175,55 @@ const requireClient = (id: ClientID): Client =>
         _acknowledgedTic: 0,
     }));
 
-const requireStats = (id: ClientID): PlayerStat => getOrCreate(game._state._stats, id, () => ({_frags: 0, _scores: 0}));
+// 定义一个名为 requireStats 的函数，该函数用于获取或创建指定客户端的玩家统计信息
+const requireStats = (id: ClientID): PlayerStat =>
+    // 调用 getOrCreate 函数，传入游戏状态中的玩家统计信息对象、客户端 ID，以及一个回调函数
+    getOrCreate(game._state._stats, id, () => ({_frags: 0, _scores: 0}));
 
+// 导出一个名为 resetGame 的函数
 export const resetGame = () => {
+    // 重置调试状态缓存
     resetDebugStateCache();
+    // 重置粒子效果
     resetParticles();
+    // 重置玩家控制
     resetPlayerControls();
 
+    // 清空游戏中的客户端集合
     game._clients.clear();
+    // 清空游戏中的本地事件数组
     game._localEvents.length = 0;
+    // 清空游戏中收到的事件数组
     game._receivedEvents.length = 0;
 
+    // 创建新的游戏状态数据并标准化它
     game._state = newStateData();
     normalizeStateData(game._state);
 
+    // 重置加入状态为等待状态
     game._joinState = JoinState.Wait;
+    // 将游戏 tic 重置为 1
     game._gameTic = 1;
+    // 重置自动重生等待标志
     game._waitToAutoSpawn = false;
+    // 重置等待重生标志
     game._waitToSpawn = false;
+    // 重置允许重生标志
     game._allowedToRespawn = false;
 
+    // 重置上一帧的时间戳
     resetLastFrameTs();
+    // 重置上一次输入 tic
     game._lastInputTic = 0;
+    // 重置上一次输入命令
     game._lastInputCmd = 0;
+    // 重置上一次音频 tic
     game._lastAudioTic = 0;
+
+    // 打印消息，表明游戏已重置
     console.log("reset game");
 
+    // 重置游戏模式相关的状态
     gameMode._title = false;
     gameMode._runAI = true;
     gameMode._playersAI = false;
