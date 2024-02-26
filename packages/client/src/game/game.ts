@@ -650,40 +650,47 @@ const tryRunTicks = (ts: number, correct = true): number => {
     return framesSimulated;
 };
 
+// 创建一个名为 _packetBuffer 的变量，类型为 Int32Array，长度为 1024 * 256，用于存储数据包的缓冲区
 const _packetBuffer = new Int32Array(1024 * 256);
 
+// 定义一个名为 sendInput 的函数，该函数用于发送输入数据包
 const sendInput = () => {
+    // 计算最后一个游戏帧的 tic
     const lastTic = game._joinState >= JoinState.Sync ? game._gameTic - 1 : 0;
+    // 遍历远程客户端的迭代器
     for (const [id, rc] of remoteClients) {
+        // 如果对等端连接正常
         if (isPeerConnected(rc)) {
+            // 获取客户端对象
             const cl = requireClient(id);
+            // 获取下一个输入帧的 tic
             const inputTic = getNextInputTic(lastTic);
+            // 如果下一个输入帧的 tic 大于客户端已确认的 tic
             if (inputTic > cl._acknowledgedTic) {
+                // 设置发送时间戳为当前时间的位掩码
                 cl._ts0 = performance.now() & 0x7fffffff;
+                // 构造数据包对象
                 const packet: Packet = {
-                    // _sync: (cl._isPlaying as never) | 0,
                     _joinState: game._joinState,
-                    // send to Client info that we know already
                     _receivedOnSender: cl._tic,
-                    // t: lastTic + simTic + Const.InputDelay,
                     _tic: inputTic,
                     _ts0: cl._ts0,
                     _ts1: cl._ts1,
+                    // 选择在发送帧范围内的本地事件
                     _events: game._localEvents.filter(e => e._tic > cl._acknowledgedTic && e._tic <= inputTic),
                 };
-                //console.log(JSON.stringify(packet.events_));
+                // 如果客户端还没准备好并且游戏的加入状态为已加入，则执行一些更新
                 if (!cl._ready && game._joinState === JoinState.Joined) {
                     // FIXME:
                     //packet._state = game._state;
                     // cl._tic = game._state._tic;
                     // cl._acknowledgedTic = game._state._tic;
                 }
+                // 如果当前环境为开发环境并且游戏的加入状态为已加入并且存在客户端 ID，则添加数据包调试状态
                 if (process.env.NODE_ENV === "development" && game._joinState === JoinState.Joined && clientId) {
                     addPacketDebugState(cl, packet, game._state);
                 }
-                // if(packet.events_.length) {
-                //     console.info("SEND: " + JSON.stringify(packet.events_));
-                // }
+                // 将数据包打包并通过通道发送给远程客户端
                 channels_sendObjectData(rc, pack(packet, _packetBuffer));
             }
         }
