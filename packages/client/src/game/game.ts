@@ -624,29 +624,43 @@ const correctPrevTime = (netTic: number, ts: number) => {
     }
 };
 
+// 定义一个名为 tryRunTicks 的函数，该函数用于尝试运行游戏帧
 const tryRunTicks = (ts: number, correct = true): number => {
+    // 获取网络 tic（最小 tic）
     const netTic = getMinTic();
+    // 计算要模拟的帧数，根据时间戳与上一个时间的差值和每秒的网络帧率来计算
     let frames = ((ts - game._prevTime) * Const.NetFq) | 0;
     let framesSimulated = 0;
+    // 当游戏 tic 小于等于网络 tic 并且还有待模拟的帧时，循环执行模拟帧
     while (game._gameTic <= netTic && frames--) {
+        // 模拟游戏帧
         simulateTic();
+        // 增加模拟帧数
         ++framesSimulated;
 
-        // compensate
-        // we must try to keep netTic >= gameTic + Const.InputDelay
+        // 补偿时间
+        // 我们必须尽量保持 netTic >= gameTic + Const.InputDelay
         game._prevTime += 1 / Const.NetFq;
     }
+    // 如果需要进行纠正
     if (correct) {
+        // 纠正前一个时间
         correctPrevTime(netTic, ts);
     }
 
+    // 如果游戏加入状态大于等于已加入
     if (game._joinState >= JoinState.Joined) {
+        // 获取最后一个 tic
         const lastTic = game._gameTic - 1;
+        // 过滤掉已经过时的收到的事件
         game._receivedEvents = game._receivedEvents.filter(v => v._tic > lastTic);
+        // 获取最小的确认 tic 和输入 tic
         const ackTic = getMinAckAndInput(lastTic);
+        // 过滤掉已经过时的本地事件
         game._localEvents = game._localEvents.filter(v => v._tic > ackTic);
     }
 
+    // 返回模拟的帧数
     return framesSimulated;
 };
 
