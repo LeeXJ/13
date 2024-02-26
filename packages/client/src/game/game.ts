@@ -235,44 +235,56 @@ export const resetGame = () => {
     gameMode._menu = GameMenuState.InGame;
 };
 
+// 定义三个变量，分别用于存储地图上的不同类型的位置槽（道具、树木、生成点）
 let mapItemSlots: MapSlot[] = [];
 let mapTreeSlots: MapSlot[] = [];
 let mapSpawnSlots: MapSlot[] = [];
+
+// 定义一个名为 recreateMap 的函数，用于重新生成地图
 const recreateMap = (themeIdx: number, seed: number) => {
-    // generate map
+    // 重新生成地图
     _SEEDS[0] = seed;
 
+    // 使用种子生成地图块
     const mapSlotsMap = new Map<number, MapSlot>();
     generateBlocks(game._blocks, mapSlotsMap);
     const mapSlots = [...mapSlotsMap.values()];
+    // 分别筛选出地图槽中的道具槽、树木槽和生成点槽
     mapTreeSlots = mapSlots.filter(x => x._type === 0);
     mapItemSlots = mapSlots.filter(x => x._type === 1);
     mapSpawnSlots = mapSlots.filter(x => x._type === 2);
 
+    // 输出树木槽、道具槽和生成点槽的数量信息
     console.info("tree slots:", mapTreeSlots.length);
     console.info("item slots:", mapItemSlots.length);
     console.info("free slots:", mapSpawnSlots.length);
 
+    // 生成地图背景主题
     const theme = generateMapBackground(themeIdx, game._blocks);
 
+    // 清空游戏中的树木列表和树木网格
     game._trees.length = 0;
     game._treesGrid.length = 0;
     const nextId = game._state._nextId;
+
+    // 根据配置生成初始数量的树木，每个树木都会占据地图上的一个树木槽
     for (let i = 0; i < GAME_CFG.trees.initCount && mapTreeSlots.length; ++i) {
         const sloti = rand(mapTreeSlots.length);
         const slot = mapTreeSlots[sloti];
         mapTreeSlots.splice(sloti, 1);
 
+        // 创建树木角色对象，并设置其属性（如位置、图像等）
         const tree = newActor(ActorType.Tree);
         tree._subtype = theme.treeGfx[rand(theme.treeGfx.length)];
         tree._hp = 0;
-        // setRandomPosition(tree);
         tree._x = (slot._x + 0.5) * TILE_SIZE * WORLD_SCALE;
         tree._y = (slot._y + 0.5) * TILE_SIZE * WORLD_SCALE;
+        // 将树木对象添加到游戏树木列表和树木网格中
         game._trees.push(tree);
         addToGrid(game._treesGrid, tree);
     }
 
+    // 恢复种子值和下一个 ID
     _SEEDS[0] = game._state._seed;
     game._state._nextId = nextId;
 };
