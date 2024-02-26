@@ -507,11 +507,14 @@ export const updateGame = (ts: number) => {
     }
 };
 
+// 定义一个名为 getLocalEvent 的函数，用于获取本地事件
 const getLocalEvent = (tic: number, _e?: ClientEvent): ClientEvent => {
+    // 如果找不到与指定 tic 相匹配的本地事件，则创建一个新的本地事件，并将其添加到游戏的本地事件数组中
     if (!(_e = game._localEvents.find(e => e._tic == tic))) {
         _e = {_tic: tic, _client: clientId};
         game._localEvents.push(_e);
     }
+    // 返回找到的本地事件
     return _e;
 };
 
