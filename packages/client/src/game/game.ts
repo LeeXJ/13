@@ -690,35 +690,41 @@ const sendInput = () => {
     }
 };
 
+// 定义一个名为 processPacket 的函数，该函数接受两个参数：sender（发送者客户端）和 data（数据包）
 const processPacket = (sender: Client, data: Packet) => {
+    // 将发送者的时间戳设置为数据包的时间戳
     sender._ts1 = data._ts0;
+    // 计算延迟，将发送者的延迟设置为当前时间减去数据包的时间戳（通过使用位掩码确保结果为正数）
     sender._lag = (performance.now() & 0x7fffffff) - data._ts1;
+    // 如果游戏的加入状态为已加入，则执行断言调试状态函数
     if (game._joinState === JoinState.Joined) {
         assertPacketDebugState(sender._id, data);
     }
+    // 将发送者的加入状态设置为数据包的加入状态
     sender._joinState = data._joinState;
-    //console.info("received packets from " + sender._id);
+    // 如果发送者尚未准备好并且数据包的加入状态大于或等于 Sync，则将发送者标记为准备好，并设置一些属性
     if (!sender._ready && data._joinState >= JoinState.Sync) {
         sender._ready = true;
         sender._tic = 0;
         sender._acknowledgedTic = 0;
     }
-    // ignore old packets
+    // 忽略旧的数据包
     if (data._tic > sender._tic && sender._ready) {
+        // 标记发送者正在进行游戏
         sender._isPlaying = true;
+        // 遍历数据包中的事件数组
         for (const e of data._events) {
+            // 如果事件的 tic 大于发送者的 tic，则将事件添加到游戏收到的事件数组中
             if (e._tic > sender._tic /*alreadyReceivedTic*/) {
                 game._receivedEvents.push(e);
             }
         }
+        // 更新发送者的 tic 为数据包的 tic
         sender._tic = data._tic;
     }
-    // IMPORTANT TO NOT UPDATE ACK IF WE GOT OLD PACKET!! WE COULD TURN REMOTE TO THE PAST
-    // just update last ack, now we know that Remote got `acknowledgedTic` amount of our tics,
-    // then we will send only events from [acknowledgedTic + 1] index
+    // 如果发送者的已确认的 tic 小于数据包的在发送者上接收到的 tic
     if (sender._acknowledgedTic < data._receivedOnSender) {
-        // update ack
-        //console.log("update _acknowledgedTic: " + data._receivedOnSender);
+        // 更新已确认的 tic
         sender._acknowledgedTic = data._receivedOnSender;
     }
 };
