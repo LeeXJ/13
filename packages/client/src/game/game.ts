@@ -621,29 +621,43 @@ const checkPlayerInput = () => {
     }
 };
 
+// 这段代码的作用是检查所有远程客户端是否已经完成了同步，并据此进行相应的操作
 const checkJoinSync = () => {
+    // 如果游戏的加入状态为同步
     if (game._joinState === JoinState.Sync) {
+        // 遍历远程客户端的 Map
         for (const [id, rc] of remoteClients) {
+            // 如果对等端连接着
             if (isPeerConnected(rc)) {
+                // 获取与此对等端关联的客户端
                 const cl = game._clients.get(id);
-                // if (!cl || cl._joinState < JoinState.Sync) {
-                //     if (!cl || !cl._ready || cl._tic < game._gameTic) {
+                // 如果客户端不存在或者客户端的加入状态小于同步状态
+                // 或者客户端未准备好或者客户端的游戏时间戳小于游戏的游戏时间戳
                 if (!cl || !cl._isPlaying) {
+                    // 输出同步信息
                     console.log("syncing...");
+                    // 返回，中断循环
                     return;
                 }
             } else {
+                // 输出仍在连接信息
                 console.log("still connecting...");
+                // 返回，中断循环
                 return;
             }
         }
+        // 如果所有客户端都已同步完成
+        // 设置游戏的加入状态为已加入
         game._joinState = JoinState.Joined;
+        // 输出所有同步信息
         console.log("All in sync");
-        // respawnPlayer();
+        // 重置玩家的重生等待状态
         game._waitToSpawn = false;
+        // 设置玩家自动重生等待状态为真
         game._waitToAutoSpawn = true;
+        // 设置允许玩家重生状态为真
         game._allowedToRespawn = true;
-
+        // 开始记录游戏状态
         beginRecording(game._state);
     }
 };
