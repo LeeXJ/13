@@ -518,20 +518,29 @@ const getLocalEvent = (tic: number, _e?: ClientEvent): ClientEvent => {
     return _e;
 };
 
+// 定义一个名为 getNextInputTic 的函数，它接受一个名为 tic 的参数
 const getNextInputTic = (tic: number) =>
+    // 返回一个计算后的新的时间戳
     tic + max(Const.InputDelay, ((lastFrameTs - game._prevTime) * Const.NetFq) | 0);
 
+// 定义名为 updatePlayerControls 的函数
 const updatePlayerControls = () => {
+    // 获取当前玩家对象
     const myPlayer = getMyPlayer();
+    // 检查是否成功获取了玩家对象
     if (myPlayer) {
+        // 如果游戏处于进行中，并且没有设置自动播放标志，并且不是回放模式
         if (gameMode._menu == GameMenuState.InGame && !hasSettingsFlag(SettingFlag.DevAutoPlay) && !gameMode._replay) {
+            // 更新玩家的控制器
             updateControls(myPlayer);
         } else {
+            // 重置玩家的控制器
             resetPlayerControls();
         }
 
-        // process Auto-play tic
+        // 处理自动播放时刻
         if (hasSettingsFlag(SettingFlag.DevAutoPlay) && !gameMode._replay) {
+            // 更新自动播放
             updateAutoplay(game._state, myPlayer._client);
         }
     }
