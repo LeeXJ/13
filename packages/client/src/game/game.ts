@@ -662,25 +662,35 @@ const checkJoinSync = () => {
     }
 };
 
-// get minimum tic that already received by
+// 这段代码的作用是获取游戏中所有客户端已确认的最小时间戳
 const getMinAckAndInput = (lastTic: number) => {
+    // 遍历游戏中的所有客户端
     for (const [, client] of game._clients) {
+        // 如果最后的时间戳大于客户端的确认时间戳并且客户端正在游戏中
         if (lastTic > client._acknowledgedTic && client._isPlaying) {
+            // 更新最后的时间戳为客户端的确认时间戳
             lastTic = client._acknowledgedTic;
         }
     }
+    // 返回最后的时间戳
     return lastTic;
 };
 
+// 校正游戏的上一个时间戳 game._prevTime
 const correctPrevTime = (netTic: number, ts: number) => {
+    // 计算上一个游戏时刻的时间戳
     const lastTic = game._gameTic - 1;
+    // 如果网络时刻与上一个游戏时刻相等
     if (netTic === lastTic) {
-        // limit predicted tics
+        // 限制预测的游戏时刻
         if (ts - game._prevTime > Const.InputDelay / Const.NetFq) {
+            // 对 game._prevTime 进行线性插值
             game._prevTime = lerp(game._prevTime, ts - Const.InputDelay / Const.NetFq, 0.01);
         }
     }
+    // 如果上一个游戏时刻加上输入延迟小于网络时刻
     if (lastTic + Const.InputDelay < netTic) {
+        // 减小 game._prevTime
         game._prevTime -= 1 / Const.NetFq;
     }
 };
