@@ -1357,78 +1357,120 @@ const simulateTic = (prediction = false) => {
     game._processingPrediction = false;
 };
 
+// 定义一个kill函数，用于处理角色死亡逻辑
 const kill = (actor: Actor) => {
+    // 播放死亡音效
     playAt(actor, Snd.death);
+    // 生成随机掉落物品数量
     const amount = 1 + rand(3);
+    // 如果角色类型为玩家，则将其转换为PlayerActor对象，否则置为null
     const player = actor._type == ActorType.Player ? (actor as PlayerActor) : null;
 
+    // 初始化掉落武器ID为0
     let dropWeapon1 = 0;
+    // 如果角色类型为Barrel且子类型小于2
     if (actor._type === ActorType.Barrel && actor._subtype < 2) {
+        // 获取掉落武器的几率和最小武器ID
         const weaponChance = GAME_CFG.barrels.dropWeapon.chance;
         const weaponMin = GAME_CFG.barrels.dropWeapon.min;
+        // 如果随机数小于掉落武器的几率
         if (rand(100) < weaponChance) {
+            // 随机生成掉落武器ID
             dropWeapon1 = weaponMin + rand(GAME_CFG.weapons.length - weaponMin);
         }
     } else if (player?._weapon) {
+        // 如果玩家存在并且有主武器，则设置掉落武器ID为玩家主武器ID，并将玩家主武器ID置为0
         dropWeapon1 = player._weapon;
         player._weapon = 0;
     }
 
+    // 循环生成掉落物品
     for (let i = 0; i < amount; ++i) {
+        // 创建随机物品
         const item = createRandomItem();
+        // 将物品位置设置为角色中心位置
         copyPosFromActorCenter(item, actor);
+        // 添加从角色身上产生的速度
         addVelFrom(item, actor);
+        // 随机生成径向速度
         const v = 16 + 48 * sqrt(random());
         addRadialVelocity(item, random(PI2), v, v);
+        // 限制物品速度
         limitVelocity(item, 64);
+        // 如果存在掉落武器ID
         if (dropWeapon1) {
+            // 设置物品类型为武器
             item._subtype = ItemType.Weapon;
+            // 设置物品武器ID为掉落武器ID
             item._itemWeapon = dropWeapon1;
+            // 获取武器配置信息
             const weapon = GAME_CFG.weapons[dropWeapon1];
+            // 设置物品武器弹药数量
             item._itemWeaponAmmo = weapon.clipSize;
+            // 如果武器有弹药，则设置物品类型为武器+弹药
             if (weapon.clipSize) {
                 item._subtype |= ItemType.Ammo;
             }
+            // 将掉落武器ID置为0，表示已使用
             dropWeapon1 = 0;
         } else if (player?._weapon2) {
+            // 如果玩家存在并且有次武器，则设置物品类型为武器
             item._subtype = ItemType.Weapon;
+            // 设置物品武器ID为玩家次武器ID
             item._itemWeapon = player._weapon2;
+            // 获取武器配置信息
             const weapon = GAME_CFG.weapons[player._weapon2];
+            // 设置物品武器弹药数量
             item._itemWeaponAmmo = weapon.clipSize;
+            // 如果武器有弹药，则设置物品类型为武器+弹药
             if (weapon.clipSize) {
                 item._subtype |= ItemType.Ammo;
             }
+            // 将玩家次武器ID置为0，表示已使用
             player._weapon2 = 0;
         }
     }
+
+    // 如果角色为玩家
     if (player) {
+        // 创建一个新的角色作为墓碑，位置与角色中心相同
         const grave = newActor(ActorType.Barrel);
         copyPosFromActorCenter(grave, actor);
         addVelFrom(grave, actor);
+        // 墓碑大小、生命值和防御值
         grave._w += 32;
         grave._hp = 15;
         grave._sp = 4;
         grave._subtype = 2;
+        // 将墓碑加入角色列表
         pushActor(grave);
 
+        // 添加血肉粒子效果和骨骼粒子效果
         addFleshParticles(256, actor, 128, grave);
         addBoneParticles(32, actor, grave);
 
+        // 如果不是重播模式且不是处理预测状态
         if (!gameMode._replay && !game._processingPrediction) {
+            // 如果角色是我的玩家
             if (player === getMyPlayer()) {
+                // 停止游戏播放
                 poki._gameplayStop();
+                // 延迟1秒，然后播放商业广告
                 delay(1000)
                     .then(poki._commercialBreak)
                     .then(() => {
+                        // 将游戏模式设置为重生模式，设置重生开始时间戳和允许重生标志
                         gameMode._menu = GameMenuState.Respawn;
                         gameMode._respawnStartTic = game._gameTic;
                         game._allowedToRespawn = true;
+                        // 记录屏幕浏览事件
                         logScreenView("respawn_screen");
                     });
             }
         }
     }
 
+    // 添加摄像机爆炸效果
     feedbackCameraExplosion(25, actor._x, actor._y);
 };
 
