@@ -1110,39 +1110,60 @@ const pickItem = (item: ItemActor, player: PlayerActor) => {
     }
 };
 
+// 定义更新游戏摄像机的函数
 const updateGameCamera = () => {
+    // 定义获取随机玩家的函数
     const getRandomPlayer = () => {
+        // 过滤出有效玩家列表
         const l = game._state._actors[ActorType.Player].filter(p => p._client && game._clients.has(p._client));
+        // 如果有效玩家列表不为空
         return l.length ? l[((lastFrameTs / 5) | 0) % l.length] : undefined;
     };
+    // 初始化摄像机缩放比例为基础缩放比例
     let scale = GAME_CFG.camera.baseScale;
+    // 初始化摄像机位置为当前摄像机的位置
     let cameraX = gameCamera._x;
     let cameraY = gameCamera._y;
+    // 如果客户端ID存在并且游戏模式不是标题模式，或者游戏模式是重播模式
     if ((clientId && !gameMode._title) || gameMode._replay) {
+        // 获取我的玩家
         const myPlayer = getMyPlayer();
+        // 如果我的玩家存在，否则获取随机玩家
         const p0 = myPlayer ?? getRandomPlayer();
+        // 如果玩家存在并且有客户端
         if (p0?._client) {
+            // 获取玩家武器的配置信息
             const wpn = GAME_CFG.weapons[p0._weapon];
+            // 将玩家位置转换为世界坐标
             const px = p0._x / WORLD_SCALE;
             const py = p0._y / WORLD_SCALE;
+            // 更新摄像机位置为玩家位置
             cameraX = px;
             cameraY = py;
+            // 获取是否启用开发自动播放模式的设置标志
             const autoPlay = hasSettingsFlag(SettingFlag.DevAutoPlay);
+            // 如果我的玩家存在，并且（不是自动播放且不是重播模式），或者游戏模式不是在游戏中菜单模式
             if (myPlayer && ((!autoPlay && !gameMode._replay) || gameMode._menu !== GameMenuState.InGame)) {
+                // 如果游戏模式是在游戏中菜单模式
                 if (gameMode._menu === GameMenuState.InGame) {
+                    // 根据玩家位置和注视点位置，更新摄像机位置和缩放比例
                     cameraX += wpn.cameraLookForward * (lookAtX - px);
                     cameraY += wpn.cameraLookForward * (lookAtY - py);
                     scale *= wpn.cameraScale;
                 } else {
+                    // 否则，将摄像机缩放比例设置为游戏内菜单模式下的缩放比例
                     scale = GAME_CFG.camera.inGameMenuScale;
                 }
             }
         }
     }
+    // 使用线性插值更新摄像机的位置
     gameCamera._x = lerp(gameCamera._x, cameraX, 0.1);
     gameCamera._y = lerp(gameCamera._y, cameraY, 0.1);
+    // 使用对数线性插值更新摄像机的缩放比例
     gameCamera._scale = lerpLog(gameCamera._scale, scale / getScreenScale(), 0.05);
 
+    // 减少摄像机效果
     decCameraEffects();
 };
 
