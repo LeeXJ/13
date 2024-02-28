@@ -406,68 +406,117 @@ export const updateGame = (ts: number) => {
     }
 
     if (game._joinState === JoinState.Wait && remoteClients.size) {
+        // 初始化最大状态数据为空
         let maxState: StateData | null = null;
+        // 初始化最大状态的时间戳为0
         let maxStateTic = 0;
+        // 初始化拥有最大状态的客户端ID为0
         let maxStateOwner = 0;
+
+        // 遍历远程客户端
         for (const [id, rc] of remoteClients) {
+            // 检查远程客户端是否连接
             if (isPeerConnected(rc)) {
+                // 获取游戏客户端对象
                 const client = game._clients.get(id);
-                // if (client && client._ready) {
+                // 如果客户端存在
                 if (client) {
+                    // 如果客户端未在加载状态且未开始状态
                     if (!client._loadingState && !client._startState) {
+                        // 输出信息，表示正在从该客户端加载状态
                         console.info("loading state from " + id);
+                        // 设置客户端为加载状态
                         client._loadingState = true;
+                        // 发送远程调用请求，请求状态数据
                         remoteCall(id, MessageType.State, "", response => {
+                            // 从响应中获取状态数据
                             const body = response[MessageField.Data] as string;
+                            // 如果状态数据存在
                             if (body) {
+                                // 创建新的状态数据对象
                                 const state = newStateData();
+                                // 将字符串转换为字节数组
                                 const bytes = toByteArray(body);
+                                // 将字节数组解析为32位整数数组
                                 const i32 = new Int32Array(bytes.buffer);
+                                // 读取状态数据
                                 readState(state, i32, 0);
+                                // 将状态数据设置为客户端的起始状态
                                 client._startState = state;
                             } else {
+                                // 如果状态数据为空，输出信息表示状态为空
                                 console.info("state from " + id + " is empty");
                             }
+                            // 将客户端的加载状态设为false，表示加载完成
                             client._loadingState = false;
                         });
                     }
+                    // 如果客户端有起始状态并且起始状态的时间戳大于当前最大时间戳
                     if (client._startState && client._startState._tic > maxStateTic) {
+                        // 更新最大状态为客户端的起始状态
                         maxState = client._startState;
+                        // 更新最大时间戳为客户端的起始状态的时间戳
                         maxStateTic = client._startState._tic;
+                        // 更新拥有最大状态的客户端ID为当前客户端ID
                         maxStateOwner = client._id;
                     }
                 }
             }
         }
+        // 如果存在最大状态
         if (maxState) {
+            // 更新帧时间，将当前性能时间戳转换为秒
             updateFrameTime(performance.now() / 1000);
+            // 获取最大状态的时间戳
             const tic = maxState._tic;
+            // 输出信息，表示正在设置状态，显示时间戳和拥有该状态的客户端ID
             console.info("setup state #", tic, "from client", maxStateOwner);
 
+            // 将游戏的加入状态设置为同步状态
             game._joinState = JoinState.Sync;
+            // 保存先前游戏的时间戳
             const prevGameTic = game._gameTic;
+            // 更新游戏的时间戳为最大状态的时间戳加1
             game._gameTic = tic + 1;
+            // 计算时间戳差值
             const ticDelta = max(0, prevGameTic - game._gameTic);
+            // 输出信息，显示时间戳差值、新游戏时间戳和先前游戏时间戳
             console.info("tic-delta:", ticDelta, "new-game-tick:", game._gameTic, "prev-game-tic:", prevGameTic);
+            // 更新上一个帧的时间
             game._prevTime = lastFrameTs - ticDelta / Const.NetFq;
+            // 更新游戏状态为最大状态
             game._state = maxState;
+            // 更新游戏的随机种子
             _SEEDS[0] = game._state._seed;
+            // 重新创建地图
             recreateMap(_room._mapTheme, _room._mapSeed);
+            // 标准化游戏状态数据
             normalizeStateData(game._state);
+            // 重置调试状态缓存
             resetDebugStateCache();
+            // 保存调试状态
             saveDebugState(cloneStateData(game._state));
 
+            // 更新最后输入的时间戳
             game._lastInputTic = tic + 1 + Const.InputDelay;
+            // 更新最后音频的时间戳
             game._lastAudioTic = tic + 1;
-            game._lastInputCmd = 0;
+            // 清空本地事件数组
             game._localEvents.length = 0;
+            // 过滤已接收事件，保留时间戳大于当前时间戳的事件
             game._receivedEvents = game._receivedEvents.filter(e => e._tic > tic);
+            // 遍历游戏客户端
             for (const [, client] of game._clients) {
+                // 输出客户端信息，包括ID、已确认的时间戳和当前时间戳
                 console.log("client ", client._id, "_acknowledgedTic:", client._acknowledgedTic, "_tic:", client._tic);
+                // 将客户端的已确认时间戳更新为当前时间戳
                 // client._acknowledgedTic = tic;
+                // 将客户端的时间戳更新为最大时间戳和当前时间戳的较大值
                 // client._tic = max(client._tic, tic);
             }
+            // 尝试运行帧处理，返回预处理的帧数
             const processedFrames = tryRunTicks(lastFrameTs, false);
+            // 输出信息，显示预处理的帧数
             console.info("preprocessed ticks:", processedFrames);
         }
     }
