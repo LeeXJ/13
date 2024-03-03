@@ -1183,23 +1183,33 @@ const checkBulletCollision = (bullet: BulletActor, actor: Actor) => {
 };
 
 const simulateTic = (prediction = false) => {
+    // 设置游戏状态的预测处理标志
     game._processingPrediction = prediction;
+
+    // 处理每个tic中的命令
     const processTicCommands = (tic: number) => {
+        // 从本地事件和接收到的事件中获取与当前tic相关的事件列表
         const tickEvents: ClientEvent[] = game._localEvents.concat(game._receivedEvents).filter(v => v._tic == tic);
+        // 按照客户端顺序排序事件列表
         tickEvents.sort((a, b) => a._client - b._client);
         if (!prediction) {
+            // 如果不是预测模式，则将事件添加到回放的事件列表中
             addReplayTicEvents(tic, tickEvents);
             if (clientId) {
-                //  console.log("play #", tic, "events:", tickEvents);
+                // 在控制台输出播放事件的信息
+                // console.log("play #", tic, "events:", tickEvents);
             }
         }
 
+        // 遍历事件列表并处理每个事件
         for (const cmd of tickEvents) {
             if (cmd._input !== undefined) {
+                // 如果事件有输入，更新对应客户端的输入状态
                 const player = getPlayerByClient(cmd._client);
                 if (player) {
                     player._input = cmd._input;
                 } else if (cmd._input & ControlsFlag.Spawn) {
+                    // 如果事件是生成事件，则生成一个新的玩家角色
                     const playerConfig = GAME_CFG.player;
                     const p = newPlayerActor();
                     p._client = cmd._client;
@@ -1208,44 +1218,52 @@ const simulateTic = (prediction = false) => {
                     p._y = pos._y * TILE_SIZE * WORLD_SCALE;
 
                     if (clientId == cmd._client) {
+                        // 如果是当前客户端的玩家，则设置游戏相机位置
                         gameCamera._x = p._x / WORLD_SCALE;
                         gameCamera._y = p._y / WORLD_SCALE;
                     }
                     p._hp = playerConfig.hp;
                     p._sp = playerConfig.sp;
                     p._mags = playerConfig.mags;
-                    // p._input = cmd._input;
                     setCurrentWeapon(p, playerConfig.startWeapon[rand(playerConfig.startWeapon.length)]);
                     pushActor(p);
                 }
             }
         }
     };
+    // 处理当前游戏tic中的命令
     processTicCommands(game._gameTic);
 
+    // 更新游戏相机
     updateGameCamera();
 
+    // 清空玩家和桶的网格列表
     game._playersGrid.length = 0;
     game._barrelsGrid.length = 0;
 
+    // 更新玩家角色
     for (const a of game._state._actors[ActorType.Player]) {
         updatePlayer(a);
         addToGrid(game._playersGrid, a);
         a._localStateFlags = 1;
     }
 
+    // 更新桶的物理状态
     for (const a of game._state._actors[ActorType.Barrel]) {
         updateActorPhysics(a, game._blocks);
         addToGrid(game._barrelsGrid, a);
         a._localStateFlags = 1;
     }
 
+    // 清空当前可用道具
     game._hotUsable = undefined;
+    // 更新道具的物理状态
     for (const item of game._state._actors[ActorType.Item]) {
         updateActorPhysics(item, game._blocks);
         if (!item._animHit) {
             queryGridCollisions(item, game._playersGrid, pickItem);
         }
+        // 更新道具的生命周期
         if (item._hp && item._lifetime) {
             if (game._gameTic % 3 === 0) {
                 --item._lifetime;
@@ -1256,11 +1274,14 @@ const simulateTic = (prediction = false) => {
         }
     }
 
+    // 更新掉落按钮
     for (const player of game._state._actors[ActorType.Player]) {
         lateUpdateDropButton(player);
     }
 
+    // 更新子弹
     for (const bullet of game._state._actors[ActorType.Bullet]) {
+        // 根据子弹类型更新子弹状态
         const weapon = getBulletWeapon(bullet);
         if (weapon) {
             const bulletType = weapon.bulletType;
@@ -1281,15 +1302,18 @@ const simulateTic = (prediction = false) => {
             bullet._hp = 0;
         }
     }
+
+    // 过滤掉已经销毁的角色
     game._state._actors[0] = game._state._actors[0].filter(x => x._hp > 0);
     game._state._actors[1] = game._state._actors[1].filter(x => x._hp > 0);
     game._state._actors[2] = game._state._actors[2].filter(x => x._hp > 0);
     game._state._actors[3] = game._state._actors[3].filter(x => x._hp > 0);
 
+    // 处理角色之间的碰撞
     for (const a of game._state._actors[ActorType.Player]) {
         a._localStateFlags = 0;
         queryGridCollisions(a, game._treesGrid, checkBodyCollision);
-        queryGridCollisions(a, game._barrelsGrid, checkBodyCollision);
+        queryGridCollisions(a, game._barrelsGrid, checkBodyCollision, 0);
         queryGridCollisions(a, game._playersGrid, checkBodyCollision, 0);
     }
     for (const a of game._state._actors[ActorType.Barrel]) {
@@ -1298,6 +1322,7 @@ const simulateTic = (prediction = false) => {
         queryGridCollisions(a, game._barrelsGrid, checkBodyCollision, 0);
     }
 
+    // 如果游戏处于等待重生状态且存在当前玩家，则开始游戏
     if (game._waitToSpawn && getMyPlayer()) {
         if (!gameMode._replay) {
             poki._gameplayStart();
@@ -1305,12 +1330,15 @@ const simulateTic = (prediction = false) => {
         game._waitToSpawn = false;
     }
 
+    // 更新树的动画状态
     for (const tree of game._trees) {
         updateAnim(tree);
     }
 
+    // 更新粒子效果
     updateParticles();
 
+    // 如果游戏模式为NPC级别，则生成NPC
     if (gameMode._npcLevel) {
         const npcLevelConfig = GAME_CFG.npc[gameMode._npcLevel];
         const NPC_PERIOD_MASK = (1 << npcLevelConfig.period) - 1;
@@ -1321,7 +1349,6 @@ const simulateTic = (prediction = false) => {
                     ++count;
                 }
             }
-            // while (count < GAME_CFG.npc.max) {
             if (count < npcLevelConfig.max) {
                 const p = newPlayerActor();
                 const pos = mapSpawnSlots[rand(mapSpawnSlots.length)];
@@ -1336,24 +1363,27 @@ const simulateTic = (prediction = false) => {
         }
     }
 
+    // 更新上一次音频tic
     if (game._lastAudioTic < game._gameTic) {
         game._lastAudioTic = game._gameTic;
     }
 
+    // 更新游戏状态的种子和tic
     game._state._seed = _SEEDS[0];
     game._state._tic = game._gameTic++;
     normalizeStateData(game._state);
 
+    // 如果是开发环境且不是预测模式且有客户端ID，则保存调试状态
     if (process.env.NODE_ENV === "development" && !prediction && clientId) {
         saveDebugState(cloneStateData(game._state));
     }
 
-    // local updates
+    // 如果是血雨模式且不是预测模式，则生成血雨粒子效果
     if (gameMode._bloodRain && !prediction) {
         spawnBloodRainParticle();
     }
 
-    // reset prediction flag
+    // 重置预测标志
     game._processingPrediction = false;
 };
 
